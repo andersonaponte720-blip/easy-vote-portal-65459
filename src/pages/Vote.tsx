@@ -12,10 +12,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import VoteModal from "@/components/VoteModal";
 import distritos from "@/data/Ubicacion/distritos.json";
 import departamentos from "@/data/Ubicacion/departamentos.json";
+import provincias from "@/data/Ubicacion/provincias.json";
 import { toast } from "sonner";
 
 const distritosArray = Object.values(distritos).flat();
 const departamentosArray = Object.values(departamentos).flat();
+const provinciasArray = Object.values(provincias).flat();
 
 interface Candidate {
   id: number;
@@ -50,9 +52,22 @@ export default function VotePage() {
   const [voterDistrito, setVoterDistrito] = useState("");
 
   // Filtrar distritos según la región seleccionada
+  // Primero obtenemos las provincias del departamento, luego los distritos de esas provincias
   const filteredDistritos = useMemo(() => {
-    if (!selectedRegionId) return distritosArray;
-    return distritosArray.filter((dist: any) => dist.id_padre_ubigeo === selectedRegionId);
+    if (!selectedRegionId) return [];
+    
+    // Obtener todas las provincias del departamento seleccionado
+    const provinciasDelDepartamento = provinciasArray.filter(
+      (prov: any) => prov.id_padre_ubigeo === selectedRegionId
+    );
+    
+    // Obtener los IDs de esas provincias
+    const provinciaIds = provinciasDelDepartamento.map((prov: any) => prov.id_ubigeo);
+    
+    // Filtrar distritos que pertenezcan a esas provincias
+    return distritosArray.filter((dist: any) => 
+      provinciaIds.includes(dist.id_padre_ubigeo)
+    );
   }, [selectedRegionId]);
 
   const presidentialCandidates: Candidate[] = [
