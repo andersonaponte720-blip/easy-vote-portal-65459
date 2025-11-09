@@ -506,7 +506,19 @@ export default function VotePage() {
         </DialogContent>
       </Dialog>
 
-      <VoteModal open={voteModalOpen} onOpenChange={setVoteModalOpen} />
+      <VoteModal 
+        open={voteModalOpen} 
+        onOpenChange={setVoteModalOpen}
+        selectedCandidateId={selectedCandidateForVote}
+        voterData={{
+          dni: voterDni,
+          nombre: voterName,
+          apellidos: voterApellidos,
+          fechaNacimiento: voterFechaNacimiento,
+          region: voterRegion,
+          distrito: voterDistrito
+        }}
+      />
     </div>
   );
 }

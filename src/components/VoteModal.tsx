@@ -37,108 +37,72 @@ interface Candidate {
 interface VoteModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  selectedCandidateId: number | null;
+  voterData: {
+    dni: string;
+    nombre: string;
+    apellidos: string;
+    fechaNacimiento: string;
+    region: string;
+    distrito: string;
+  };
 }
 
-export default function VoteModal({ open, onOpenChange }: VoteModalProps) {
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [loadingCandidates, setLoadingCandidates] = useState(true);
-  const [selectedCandidate, setSelectedCandidate] = useState<string>("");
-
-  const [nombre, setNombre] = useState("");
-  const [apellido, setApellido] = useState("");
-  const [dni, setDni] = useState("");
-  const [celular, setCelular] = useState("");
-  const [departamento, setDepartamento] = useState("");
-  const [provincia, setProvincia] = useState("");
-  const [distrito, setDistrito] = useState("");
-  const [email, setEmail] = useState("");
-  const [edad, setEdad] = useState("");
-  const [genero, setGenero] = useState("");
-  const [educacion, setEducacion] = useState("");
+export default function VoteModal({ open, onOpenChange, selectedCandidateId, voterData }: VoteModalProps) {
+  const [candidate, setCandidate] = useState<Candidate | null>(null);
+  const [loadingCandidate, setLoadingCandidate] = useState(true);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    if (open) {
-      const loadCandidates = async () => {
+    if (open && selectedCandidateId) {
+      const loadCandidate = async () => {
         try {
-          setLoadingCandidates(true);
+          setLoadingCandidate(true);
           const data = await electoralApi.getCandidates();
-          const realCandidates: Candidate[] = data.candidates.map((c: any) => ({
-            id: Number(c.id),
-            name: c.name,
-            party: c.party,
-            proposals: c.proposals || "Propuestas no disponibles"
-          }));
-          setCandidates(realCandidates);
+          const foundCandidate = data.candidates.find((c: any) => Number(c.id) === selectedCandidateId);
+          if (foundCandidate) {
+            setCandidate({
+              id: Number(foundCandidate.id),
+              name: foundCandidate.name,
+              party: foundCandidate.party,
+              proposals: foundCandidate.proposals || "Propuestas no disponibles"
+            });
+          }
         } catch (err) {
-          toast.error("Error al cargar candidatos");
+          toast.error("Error al cargar candidato");
           console.error(err);
         } finally {
-          setLoadingCandidates(false);
+          setLoadingCandidate(false);
         }
       };
-      loadCandidates();
+      loadCandidate();
     }
-  }, [open]);
+  }, [open, selectedCandidateId]);
 
-  const provinciasDisponibles = departamento ? Object.keys(UBICACIONES_PERU[departamento]) : [];
-  const distritosDisponibles = departamento && provincia ? UBICACIONES_PERU[departamento][provincia] : [];
-
-  const handleVote = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!selectedCandidate || !nombre || !apellido || !dni || !celular || 
-        !departamento || !provincia || !distrito || !email || 
-        !edad || !genero || !educacion) {
-      toast.error("Por favor complete todos los campos requeridos");
-      return;
-    }
-
-    if (!/^\d{8}$/.test(dni)) {
-      toast.error("El DNI debe tener 8 dígitos");
-      return;
-    }
-
-    if (!/^\d{9}$/.test(celular.replace(/\s/g, ''))) {
-      toast.error("El número de celular debe tener 9 dígitos");
-      return;
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      toast.error("Ingrese un correo electrónico válido");
-      return;
-    }
-
-    const edadNum = parseInt(edad);
-    if (edadNum < 18 || edadNum > 99) {
-      toast.error("La edad debe estar entre 18 y 99 años");
-      return;
-    }
+  const handleConfirmVote = async () => {
+    if (!selectedCandidateId) return;
 
     setLoading(true);
 
     try {
-      const hasVoted = await electoralApi.checkIfVoted(dni, email);
-      if (hasVoted) {
-        toast.error('Ya has emitido tu voto anteriormente con este DNI o Email');
-        setLoading(false);
-        return;
-      }
+      const birthDate = new Date(voterData.fechaNacimiento);
+      const today = new Date();
+      const edad = today.getFullYear() - birthDate.getFullYear();
 
       await electoralApi.submitVote({
-        nombre,
-        apellido,
-        dni,
-        email,
-        celular,
-        departamento,
-        provincia,
-        distrito,
-        edad: parseInt(edad),
-        genero,
-        educacion,
-        candidate_id: parseInt(selectedCandidate)
+        nombre: voterData.nombre,
+        apellido: voterData.apellidos,
+        dni: voterData.dni,
+        email: `${voterData.dni}@electoral.pe`,
+        celular: "000000000",
+        departamento: voterData.region,
+        provincia: voterData.region,
+        distrito: voterData.distrito,
+        edad: edad,
+        genero: "no especificado",
+        educacion: "no especificado",
+        candidate_id: selectedCandidateId
       });
 
       setSubmitted(true);
@@ -158,18 +122,7 @@ export default function VoteModal({ open, onOpenChange }: VoteModalProps) {
   const handleClose = () => {
     if (!loading) {
       setSubmitted(false);
-      setSelectedCandidate("");
-      setNombre("");
-      setApellido("");
-      setDni("");
-      setCelular("");
-      setDepartamento("");
-      setProvincia("");
-      setDistrito("");
-      setEmail("");
-      setEdad("");
-      setGenero("");
-      setEducacion("");
+      setCandidate(null);
       onOpenChange(false);
     }
   };
@@ -185,7 +138,7 @@ export default function VoteModal({ open, onOpenChange }: VoteModalProps) {
             <DialogHeader>
               <DialogTitle className="text-3xl">¡Voto Registrado!</DialogTitle>
               <DialogDescription className="text-base">
-                Gracias {nombre} {apellido} por participar en el proceso electoral
+                Gracias {voterData.nombre} {voterData.apellidos} por participar en el proceso electoral
               </DialogDescription>
             </DialogHeader>
             <p className="text-muted-foreground">
@@ -208,164 +161,85 @@ export default function VoteModal({ open, onOpenChange }: VoteModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh]">
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 mb-4">
             <div className="w-12 h-12 gradient-hero rounded-lg flex items-center justify-center shadow-sm">
               <VoteIcon className="w-6 h-6 text-primary-foreground" />
             </div>
             <div>
-              <DialogTitle className="text-2xl">Emitir Voto Electoral</DialogTitle>
+              <DialogTitle className="text-2xl">Confirmar Voto</DialogTitle>
               <DialogDescription>
-                Complete el formulario para registrar su voto de forma segura
+                Verifique su selección antes de confirmar
               </DialogDescription>
             </div>
           </div>
         </DialogHeader>
-        
-        <ScrollArea className="max-h-[calc(90vh-120px)] pr-4">
-          <form onSubmit={handleVote} className="space-y-6">
-            {/* Información Personal */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full gradient-hero flex items-center justify-center text-primary-foreground font-bold text-xs">
-                  1
-                </div>
-                <h3 className="text-lg font-bold text-foreground">Información Personal</h3>
-              </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="nombre">Nombre *</Label>
-                  <Input id="nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} required placeholder="Ej: Juan" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="apellido">Apellido *</Label>
-                  <Input id="apellido" value={apellido} onChange={(e) => setApellido(e.target.value)} required placeholder="Ej: Pérez" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="dni">DNI *</Label>
-                  <Input id="dni" value={dni} onChange={(e) => setDni(e.target.value.replace(/\D/g, '').slice(0, 8))} required placeholder="12345678" maxLength={8} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="celular">Número de Celular *</Label>
-                  <Input id="celular" value={celular} onChange={(e) => setCelular(e.target.value.replace(/\D/g, '').slice(0, 9))} required placeholder="987654321" maxLength={9} />
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="email">Correo Electrónico *</Label>
-                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="correo@ejemplo.com" />
-                </div>
+        {loadingCandidate ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : candidate ? (
+          <div className="space-y-6">
+            <div className="p-4 border border-border rounded-lg bg-muted/30 space-y-3">
+              <div className="text-sm text-muted-foreground">Votante:</div>
+              <div className="font-semibold text-foreground">
+                {voterData.nombre} {voterData.apellidos}
               </div>
+              <div className="text-sm text-muted-foreground">DNI: {voterData.dni}</div>
             </div>
 
-            {/* Ubicación */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full gradient-hero flex items-center justify-center text-primary-foreground font-bold text-xs">
-                  2
-                </div>
-                <h3 className="text-lg font-bold text-foreground">Ubicación</h3>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="space-y-2">
-                  <Label htmlFor="departamento">Departamento *</Label>
-                  <Select value={departamento} onValueChange={(value) => { setDepartamento(value); setProvincia(""); setDistrito(""); }}>
-                    <SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger>
-                    <SelectContent>{Object.keys(UBICACIONES_PERU).map((dept) => (<SelectItem key={dept} value={dept}>{dept}</SelectItem>))}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="provincia">Provincia *</Label>
-                  <Select value={provincia} onValueChange={(value) => { setProvincia(value); setDistrito(""); }} disabled={!departamento}>
-                    <SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger>
-                    <SelectContent>{provinciasDisponibles.map((prov) => (<SelectItem key={prov} value={prov}>{prov}</SelectItem>))}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="distrito">Distrito *</Label>
-                  <Select value={distrito} onValueChange={setDistrito} disabled={!provincia}>
-                    <SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger>
-                    <SelectContent>{distritosDisponibles.map((dist) => (<SelectItem key={dist} value={dist}>{dist}</SelectItem>))}</SelectContent>
-                  </Select>
-                </div>
-              </div>
+            <div className="p-4 border-2 border-primary rounded-lg bg-primary/5 space-y-2">
+              <div className="text-sm text-muted-foreground">Candidato seleccionado:</div>
+              <div className="font-bold text-xl text-foreground">{candidate.name}</div>
+              <div className="text-sm text-muted-foreground">{candidate.party}</div>
             </div>
 
-            {/* Información Demográfica */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full gradient-hero flex items-center justify-center text-primary-foreground font-bold text-xs">
-                  3
-                </div>
-                <h3 className="text-lg font-bold text-foreground">Información Demográfica</h3>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="space-y-2">
-                  <Label htmlFor="edad">Edad *</Label>
-                  <Input id="edad" type="number" value={edad} onChange={(e) => setEdad(e.target.value)} required min="18" max="99" placeholder="Ej: 25" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="genero">Género *</Label>
-                  <Select value={genero} onValueChange={setGenero}>
-                    <SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="masculino">Masculino</SelectItem>
-                      <SelectItem value="femenino">Femenino</SelectItem>
-                      <SelectItem value="otro">Otro</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="educacion">Nivel Educativo *</Label>
-                  <Select value={educacion} onValueChange={setEducacion}>
-                    <SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="primaria">Primaria</SelectItem>
-                      <SelectItem value="secundaria">Secundaria</SelectItem>
-                      <SelectItem value="tecnica">Técnica</SelectItem>
-                      <SelectItem value="universitaria">Universitaria</SelectItem>
-                      <SelectItem value="posgrado">Posgrado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+            <div className="p-4 bg-accent/10 border border-accent/30 rounded-lg">
+              <p className="text-center text-sm font-medium text-foreground">
+                ¿Está seguro de realizar este voto por este candidato?
+              </p>
+              <p className="text-center text-xs text-muted-foreground mt-2">
+                Esta acción no se puede deshacer
+              </p>
             </div>
 
-            {/* Selección de Candidato */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full gradient-hero flex items-center justify-center text-primary-foreground font-bold text-xs">
-                  4
-                </div>
-                <h3 className="text-lg font-bold text-foreground">Seleccione su Candidato</h3>
-              </div>
-
-              {loadingCandidates ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : (
-                <RadioGroup value={selectedCandidate} onValueChange={setSelectedCandidate} className="space-y-3">
-                  {candidates.map((candidate) => (
-                    <div key={candidate.id} className="flex items-start space-x-3 border border-border rounded-lg p-3 hover:bg-muted/50 transition-smooth cursor-pointer">
-                      <RadioGroupItem value={String(candidate.id)} id={`candidate-${candidate.id}`} />
-                      <Label htmlFor={`candidate-${candidate.id}`} className="flex-1 cursor-pointer">
-                        <div className="font-semibold text-foreground">{candidate.name}</div>
-                        <div className="text-sm text-muted-foreground">{candidate.party}</div>
-                      </Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-              )}
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleClose}
+                disabled={loading}
+                className="flex-1"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                onClick={handleConfirmVote}
+                disabled={loading}
+                className="flex-1 gradient-hero shadow-elegant hover:shadow-glow"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Procesando...
+                  </>
+                ) : (
+                  <>
+                    <Check className="mr-2 h-4 w-4" />
+                    Confirmar Voto
+                  </>
+                )}
+              </Button>
             </div>
-
-            <Button type="submit" disabled={loading || loadingCandidates} className="w-full gradient-hero shadow-elegant hover:shadow-glow">
-              {loading ? (<><Loader2 className="mr-2 h-5 w-5 animate-spin" />Procesando...</>) : (<><VoteIcon className="mr-2 h-5 w-5" />Confirmar Voto</>)}
-            </Button>
-          </form>
-        </ScrollArea>
+          </div>
+        ) : (
+          <div className="text-center text-muted-foreground py-4">
+            No se pudo cargar la información del candidato
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
