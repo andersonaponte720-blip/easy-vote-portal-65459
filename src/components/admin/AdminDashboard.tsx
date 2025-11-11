@@ -18,7 +18,7 @@ const AdminDashboard = () => {
     // Suscribirse a cambios en tiempo real
     const channel = supabase
       .channel('schema-db-changes')
-      .on(s
+      .on(
         'postgres_changes',
         {
           event: 'INSERT',

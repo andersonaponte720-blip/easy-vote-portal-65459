@@ -28,24 +28,24 @@ export function AppSidebar() {
   const { open } = useSidebar();
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/70">
-            Sistema Electoral
+    <Sidebar collapsible="icon" className="bg-gray-800 border-r border-gray-700">
+      <SidebarContent className="bg-gray-800">
+        <SidebarGroup className="bg-gray-800">
+          <SidebarGroupLabel className="text-gray-400 px-4 bg-gray-800">
+            Navegación
           </SidebarGroupLabel>
-          <SidebarGroupContent>
+          <SidebarGroupContent className="bg-gray-800">
             <SidebarMenu>
               {mainItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild tooltip={item.title}>
+                <SidebarMenuItem key={item.title} className="bg-gray-800">
+                  <SidebarMenuButton asChild className="bg-gray-800 hover:bg-gray-700">
                     <NavLink 
                       to={item.url} 
                       end={item.url === "/"}
-                      className="flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth hover:bg-sidebar-accent"
-                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-sm"
+                      className="flex items-center gap-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-md transition-colors bg-gray-800"
+                      activeClassName="bg-blue-600 text-white"
                     >
-                      <item.icon className="h-4 w-4 flex-shrink-0" />
+                      <item.icon className="h-4 w-4" />
                       {open && <span>{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
@@ -55,21 +55,21 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/70">
-            Más
+        <SidebarGroup className="bg-gray-800">
+          <SidebarGroupLabel className="text-gray-400 px-4 bg-gray-800">
+            Otros
           </SidebarGroupLabel>
-          <SidebarGroupContent>
+          <SidebarGroupContent className="bg-gray-800">
             <SidebarMenu>
               {secondaryItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild tooltip={item.title}>
+                <SidebarMenuItem key={item.title} className="bg-gray-800">
+                  <SidebarMenuButton asChild className="bg-gray-800 hover:bg-gray-700">
                     <NavLink 
                       to={item.url}
-                      className="flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth hover:bg-sidebar-accent"
-                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-sm"
+                      className="flex items-center gap-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-md transition-colors bg-gray-800"
+                      activeClassName="bg-blue-600 text-white"
                     >
-                      <item.icon className="h-4 w-4 flex-shrink-0" />
+                      <item.icon className="h-4 w-4" />
                       {open && <span>{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
